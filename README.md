@@ -91,11 +91,11 @@ tests\test_pawpal.py ............. [100%]
 
 Describe your app in numbered steps so a reader can follow along without watching a video:
 
-1. <!-- Describe this step -->
-2. <!-- Describe this step -->
-3. <!-- Describe this step -->
-4. <!-- Describe this step -->
-5. <!-- Add more steps as needed -->
+1. Run streamlit run app.py and open the link it prints
+2. Enter an owner name, pet name and species. Than click add pet.
+3. Add in taks by filling in a title, duration, priority, the pet name, and preffered time and frequency. Click add task
+4. Adjust show pet to see what pet needs to be used and show status to see whether you wanna see all, done or to do tasks.
+5. Click generate schedule to schedule all the tasks and see what times are alloted.
 
 **Screenshot or video** _(optional)_: <!-- Insert a screenshot or link to a demo video here -->
 

@@ -59,12 +59,15 @@ After the first skeleton, I reviewed it for missing relationships and bottleneck
 **a. What you tested**
 
 - What behaviors did you test?
+  I tested basic functions like checking task count and marking tasks complete. I tested sort functions that sort tasks in chronological order, tasks with no set time going to the end and making that the tasks are sorted correctly. Made sure repeating tasks are all done like tomorrow not in today, one time tasks, adding weekly and daily copies. I also detected coflicts of two pets at the same time and made sure finished tasks and tasks at different time do not give conflicts.
 - Why were these tests important?
-
-**b. Confidence**
+  I tested to make sure that all my logic functions work fine
+  **b. Confidence**
 
 - How confident are you that your scheduler works correctly?
+  I am relatively confident
 - What edge cases would you test next if you had more time?
+  I would test more of the sorting functions and how the scheduler adjusts based on new tasks being added.
 
 ---
 
@@ -73,11 +76,23 @@ After the first skeleton, I reviewed it for missing relationships and bottleneck
 **a. What went well**
 
 - What part of this project are you most satisfied with?
-
-**b. What you would improve**
+  The coding part
+  **b. What you would improve**
 
 - If you had another iteration, what would you improve or redesign?
-
-**c. Key takeaway**
+  I would probably clean up the AI code a little bit and make it more readable.
+  **c. Key takeaway**
 
 - What is one important thing you learned about designing systems or working with AI on this project?
+  That AI jumps forward a lot and than you need safety guardrails because AI works way too far ahead and can override my current project view.
+
+## 6. AI Strategy
+
+- Which AI coding assistant features were most effective for building your scheduler?
+  Agent mode where it could read multiple files, edit and run the code to build the scheduler.
+- Give one example of an AI suggestion you rejected or modified to keep your system design clean.
+  I rejected multiple AI suggestions specifically when it jumped too far forward and started filling in things incorrectly which would have led to a lot of confusion.
+- How did using separate chat sessions for different phases help you stay organized?
+  It helped keep things seperate and to avoid overlapping.
+
+I learned about being an AI Architect and how its like dealing with a fully powered on engine that at any moment just jump very far forward beyond.

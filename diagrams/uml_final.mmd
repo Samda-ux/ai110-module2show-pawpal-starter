@@ -1,0 +1,62 @@
+classDiagram
+    class Owner {
+        +str name
+        +int available_minutes
+        +dict preferences
+        +list~Pet~ pets
+        +add_pet(pet) None
+        +remove_pet(pet_name) None
+        +get_pet(pet_name) Pet
+        +get_all_tasks() list~tuple~
+    }
+
+    class Pet {
+        +str name
+        +str species
+        +int age
+        +list~Task~ tasks
+        +add_task(task) None
+        +remove_task(description) None
+    }
+
+    class Task {
+        +str description
+        +int duration_minutes
+        +str priority
+        +str time
+        +str frequency
+        +bool completed
+        +date due_date
+        +mark_complete() None
+        +mark_incomplete() None
+        +next_occurrence() Task
+    }
+
+    class ScheduledTask {
+        +Pet pet
+        +Task task
+        +int start_minute
+        +str reason
+    }
+
+    class Scheduler {
+        +Owner owner
+        +list~ScheduledTask~ plan
+        +list~tuple~ skipped
+        +get_pending_tasks(day) list~tuple~
+        +sort_tasks(tasks) list~tuple~
+        +sort_by_time(tasks) list~tuple~
+        +filter_tasks(pet_name, completed) list~tuple~
+        +detect_conflicts() list~str~
+        +generate_plan() list~ScheduledTask~
+        +complete_task(pet_name, description) bool
+        +explain_plan() str
+    }
+
+    Owner "1" *-- "0..*" Pet : has
+    Pet "1" *-- "0..*" Task : needs
+    Task ..> Task : next_occurrence creates
+    Scheduler --> Owner : reads tasks via get_all_tasks
+    Scheduler "1" o-- "0..*" ScheduledTask : produces
+    ScheduledTask --> Pet : for
+    ScheduledTask --> Task : schedules

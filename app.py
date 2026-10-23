@@ -1,6 +1,8 @@
+import re
+
 import streamlit as st
 
-from pawpal_system import Owner, Pet, Task
+from pawpal_system import Owner, Pet, Scheduler, Task, _to_hhmm, _to_minutes
 
 st.set_page_config(page_title="PawPal+", page_icon="🐾", layout="centered")
 
@@ -63,50 +65,111 @@ else:
     st.info("No pets yet. Add one above.")
 
 st.markdown("### Tasks")
-st.caption("Add a few tasks. In your final version, these should feed into your scheduler.")
+st.caption("Give a task a preferred time to have it sorted and checked for conflicts.")
 
 col1, col2, col3 = st.columns(3)
 with col1:
     task_title = st.text_input("Task title", value="Morning walk")
+    task_pet = st.selectbox("For pet", [p.name for p in owner.pets])
 with col2:
     duration = st.number_input("Duration (minutes)", min_value=1, max_value=240, value=20)
+    task_time = st.text_input("Preferred time (HH:MM, optional)")
 with col3:
     priority = st.selectbox("Priority", ["low", "medium", "high"], index=2)
-task_pet = st.selectbox("For pet", [p.name for p in owner.pets])
+    frequency = st.selectbox("Frequency", ["daily", "weekly", "once"])
 
 if st.button("Add task"):
+    task_time = task_time.strip() or None
     if task_pet is None:
         st.warning("Add a pet first.")
+    elif task_time and not re.fullmatch(r"([01]?\d|2[0-3]):[0-5]\d", task_time):
+        st.error("Preferred time must look like 07:30.")
     else:
-        owner.get_pet(task_pet).add_task(Task(task_title, int(duration), priority))
+        owner.get_pet(task_pet).add_task(
+            Task(task_title, int(duration), priority, time=task_time, frequency=frequency)
+        )
+        st.success(f"Added '{task_title}' for {task_pet}.")
 
-tasks = owner.get_all_tasks()
-if tasks:
-    st.write("Current tasks:")
-    st.table(
-        [
-            {"pet": pet.name, "task": t.description, "duration_minutes": t.duration_minutes, "priority": t.priority}
-            for pet, t in tasks
-        ]
+scheduler = Scheduler(owner)
+
+if owner.get_all_tasks():
+    # Conflict warnings come straight from the Scheduler.
+    for warning in scheduler.detect_conflicts():
+        st.warning(f"⚠️ {warning}")
+
+    col1, col2 = st.columns(2)
+    with col1:
+        pet_filter = st.selectbox("Show pet", ["All pets"] + [p.name for p in owner.pets])
+    with col2:
+        status_filter = st.selectbox("Show status", ["All", "To do", "Done"])
+
+    filtered = scheduler.filter_tasks(
+        pet_name=None if pet_filter == "All pets" else pet_filter,
+        completed={"All": None, "To do": False, "Done": True}[status_filter],
     )
+    if filtered:
+        st.table(
+            [
+                {
+                    "Time": t.time or "flexible",
+                    "Task": t.description,
+                    "Pet": pet.name,
+                    "Minutes": t.duration_minutes,
+                    "Priority": t.priority,
+                    "Repeats": t.frequency,
+                    "Due": t.due_date.isoformat(),
+                    "Status": "✅ done" if t.completed else "to do",
+                }
+                for pet, t in scheduler.sort_by_time(filtered)
+            ]
+        )
+    else:
+        st.info("No tasks match these filters.")
+
+    open_tasks = scheduler.filter_tasks(completed=False)
+    if open_tasks:
+        col1, col2 = st.columns([3, 1])
+        with col1:
+            choice = st.selectbox(
+                "Mark a task done",
+                range(len(open_tasks)),
+                format_func=lambda i: f"{open_tasks[i][1].description} ({open_tasks[i][0].name})",
+            )
+        with col2:
+            st.write("")
+            if st.button("Complete"):
+                pet, task = open_tasks[choice]
+                scheduler.complete_task(pet.name, task.description)
+                st.rerun()
 else:
     st.info("No tasks yet. Add one above.")
 
 st.divider()
 
 st.subheader("Build Schedule")
-st.caption("This button should call your scheduling logic once you implement it.")
+owner.available_minutes = int(
+    st.number_input("Minutes available today", min_value=0, max_value=1440, value=owner.available_minutes)
+)
 
 if st.button("Generate schedule"):
-    st.warning(
-        "Not implemented yet. Next step: create your scheduling logic (classes/functions) and call it here."
-    )
-    st.markdown(
-        """
-Suggested approach:
-1. Design your UML (draft).
-2. Create class stubs (no logic).
-3. Implement scheduling behavior.
-4. Connect your scheduler here and display results.
-"""
-    )
+    plan = scheduler.generate_plan()
+    if plan:
+        used = sum(item.task.duration_minutes for item in plan)
+        st.success(f"Scheduled {len(plan)} task(s), {used} of {owner.available_minutes} minutes.")
+        day_start = _to_minutes(owner.preferences.get("day_start", "08:00"))
+        st.table(
+            [
+                {
+                    "Start": _to_hhmm(day_start + item.start_minute),
+                    "Task": item.task.description,
+                    "Pet": item.pet.name,
+                    "Minutes": item.task.duration_minutes,
+                    "Why": item.reason,
+                }
+                for item in plan
+            ]
+        )
+    else:
+        st.info("Nothing to schedule today.")
+    for pet, task in scheduler.skipped:
+        st.warning(f"Skipped {task.description} for {pet.name}: not enough time left.")
