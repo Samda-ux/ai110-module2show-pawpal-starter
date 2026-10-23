@@ -67,18 +67,16 @@ Daily plan for Jordan (90 min available):
 python -m pytest
 ```
 
+I tested basic functions like checking task count and marking tasks complete. I tested sort functions that sort tasks in chronological order, tasks with no set time going to the end and making that the tasks are sorted correctly. Made sure repeating tasks are all done like tomorrow not in today, one time tasks, adding weekly and daily copies. I also detected coflicts of two pets at the same time and made sure finished tasks and tasks at different time do not give conflicts.
+\*\*\*\* 4 stars
+
 # Test output:
 
-```
-============================= test session starts =============================
-platform win32 -- Python 3.13.0, pytest-9.1.1, pluggy-1.7.0
-rootdir: C:\Users\swift_o\ai110-module2show-pawpal-starter
-collected 2 items
+collected 13 items
 
-tests\test_pawpal.py ..                                                  [100%]
+tests\test_pawpal.py ............. [100%]
 
-============================== 2 passed in 0.03s ==============================
-```
+========== 13 passed in 0.05s ===========
 
 ## 📐 Smarter Scheduling
 
