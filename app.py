@@ -1,5 +1,7 @@
 import streamlit as st
 
+from pawpal_system import Owner, Pet, Task
+
 st.set_page_config(page_title="PawPal+", page_icon="🐾", layout="centered")
 
 st.title("🐾 PawPal+")
@@ -38,16 +40,30 @@ At minimum, your system should:
 
 st.divider()
 
-st.subheader("Quick Demo Inputs (UI only)")
-owner_name = st.text_input("Owner name", value="Jordan")
+st.subheader("Quick Demo Inputs")
+
+# Keep the Owner in session_state so pets and tasks survive Streamlit's reruns.
+if "owner" not in st.session_state:
+    st.session_state.owner = Owner("Jordan")
+owner = st.session_state.owner
+
+owner.name = st.text_input("Owner name", value=owner.name)
 pet_name = st.text_input("Pet name", value="Mochi")
 species = st.selectbox("Species", ["dog", "cat", "other"])
 
+if st.button("Add pet"):
+    if owner.get_pet(pet_name):
+        st.warning(f"{pet_name} is already added.")
+    else:
+        owner.add_pet(Pet(pet_name, species))
+
+if owner.pets:
+    st.write("Pets: " + ", ".join(f"{p.name} ({p.species})" for p in owner.pets))
+else:
+    st.info("No pets yet. Add one above.")
+
 st.markdown("### Tasks")
 st.caption("Add a few tasks. In your final version, these should feed into your scheduler.")
-
-if "tasks" not in st.session_state:
-    st.session_state.tasks = []
 
 col1, col2, col3 = st.columns(3)
 with col1:
@@ -56,15 +72,23 @@ with col2:
     duration = st.number_input("Duration (minutes)", min_value=1, max_value=240, value=20)
 with col3:
     priority = st.selectbox("Priority", ["low", "medium", "high"], index=2)
+task_pet = st.selectbox("For pet", [p.name for p in owner.pets])
 
 if st.button("Add task"):
-    st.session_state.tasks.append(
-        {"title": task_title, "duration_minutes": int(duration), "priority": priority}
-    )
+    if task_pet is None:
+        st.warning("Add a pet first.")
+    else:
+        owner.get_pet(task_pet).add_task(Task(task_title, int(duration), priority))
 
-if st.session_state.tasks:
+tasks = owner.get_all_tasks()
+if tasks:
     st.write("Current tasks:")
-    st.table(st.session_state.tasks)
+    st.table(
+        [
+            {"pet": pet.name, "task": t.description, "duration_minutes": t.duration_minutes, "priority": t.priority}
+            for pet, t in tasks
+        ]
+    )
 else:
     st.info("No tasks yet. Add one above.")
 

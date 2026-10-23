@@ -1,9 +1,13 @@
 """PawPal+ logic layer: owner, pets, tasks, and the scheduler."""
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
+from datetime import date, timedelta
 
 # Lower rank = scheduled first. Sorting on the raw strings would be alphabetical.
 PRIORITY_RANK = {"high": 0, "medium": 1, "low": 2}
+
+# How far ahead the next copy of a recurring task is due. "once" tasks don't recur.
+RECURRENCE = {"daily": timedelta(days=1), "weekly": timedelta(weeks=1)}
 
 
 @dataclass
@@ -14,10 +18,18 @@ class Task:
     time: str | None = None  # preferred start "HH:MM", or None if flexible
     frequency: str = "daily"  # "once" | "daily" | "weekly"
     completed: bool = False
+    due_date: date = field(default_factory=date.today)
 
     def mark_complete(self) -> None:
         """Mark this task as done."""
         self.completed = True
+
+    def next_occurrence(self) -> "Task | None":
+        """Return a fresh copy due one interval later, or None for one-off tasks."""
+        interval = RECURRENCE.get(self.frequency)
+        if interval is None:
+            return None
+        return replace(self, completed=False, due_date=self.due_date + interval)
 
     def mark_incomplete(self) -> None:
         """Reset this task, e.g. for the next day of a recurring task."""
@@ -95,9 +107,31 @@ class Scheduler:
         self.plan: list[ScheduledTask] = []  # last generated plan, read by explain_plan()
         self.skipped: list[tuple[Pet, Task]] = []  # tasks that didn't fit the time budget
 
-    def get_pending_tasks(self) -> list[tuple[Pet, Task]]:
-        """All incomplete tasks across every pet, read through the Owner."""
-        return [(pet, task) for pet, task in self.owner.get_all_tasks() if not task.completed]
+    def get_pending_tasks(self, day: date | None = None) -> list[tuple[Pet, Task]]:
+        """Incomplete tasks due on or before `day` (default today), across every pet."""
+        day = day or date.today()
+        return [
+            (pet, task)
+            for pet, task in self.owner.get_all_tasks()
+            if not task.completed and task.due_date <= day
+        ]
+
+    def sort_by_time(self, tasks: list[tuple[Pet, Task]] | None = None) -> list[tuple[Pet, Task]]:
+        """Order tasks by their "HH:MM" time, earliest first; flexible tasks go last."""
+        tasks = self.owner.get_all_tasks() if tasks is None else tasks
+        # Converting to minutes keeps "7:30" before "10:00", which plain string sorting would not.
+        return sorted(tasks, key=lambda pt: _to_minutes(pt[1].time) if pt[1].time else float("inf"))
+
+    def filter_tasks(
+        self, pet_name: str | None = None, completed: bool | None = None
+    ) -> list[tuple[Pet, Task]]:
+        """Return tasks matching a pet name and/or completion status; None means "any"."""
+        return [
+            (pet, task)
+            for pet, task in self.owner.get_all_tasks()
+            if (pet_name is None or pet.name == pet_name)
+            and (completed is None or task.completed == completed)
+        ]
 
     def sort_tasks(self, tasks: list[tuple[Pet, Task]]) -> list[tuple[Pet, Task]]:
         """Order by priority, then preferred time (timed tasks first), then shortest first."""
@@ -110,6 +144,24 @@ class Scheduler:
                 pt[1].duration_minutes,
             ),
         )
+
+    def detect_conflicts(self) -> list[str]:
+        """Return a warning for each time slot that has more than one pending task.
+
+        Lightweight check: only exact "HH:MM" matches count, not overlapping durations.
+        Returns an empty list when there are no conflicts; never raises.
+        """
+        by_time: dict[str, list[tuple[Pet, Task]]] = {}
+        for pet, task in self.get_pending_tasks():
+            if task.time:
+                by_time.setdefault(task.time, []).append((pet, task))
+
+        warnings = []
+        for time, tasks in sorted(by_time.items()):
+            if len(tasks) > 1:
+                names = ", ".join(f"{task.description} ({pet.name})" for pet, task in tasks)
+                warnings.append(f"Conflict at {time}: {names}")
+        return warnings
 
     def generate_plan(self) -> list[ScheduledTask]:
         """Pick and order tasks for the day within the owner's available time."""
@@ -128,7 +180,7 @@ class Scheduler:
                 self.skipped.append((pet, task))
 
         # Lay chosen tasks out in time order: preferred times first, flexible ones after.
-        chosen.sort(key=lambda pt: _to_minutes(pt[1].time) if pt[1].time else float("inf"))
+        chosen = self.sort_by_time(chosen)
         self.plan = []
         clock = day_start
         for pet, task in chosen:
@@ -142,10 +194,16 @@ class Scheduler:
         return self.plan
 
     def complete_task(self, pet_name: str, description: str) -> bool:
-        """Mark a pet's task done. Returns False if no such task exists."""
+        """Mark a pet's open task done and queue its next occurrence if it recurs.
+
+        Returns False if the pet has no open task with that description.
+        """
         for pet, task in self.owner.get_all_tasks():
-            if pet.name == pet_name and task.description == description:
+            if pet.name == pet_name and task.description == description and not task.completed:
                 task.mark_complete()
+                next_task = task.next_occurrence()
+                if next_task:
+                    pet.add_task(next_task)
                 return True
         return False
 
