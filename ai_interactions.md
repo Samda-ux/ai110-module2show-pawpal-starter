@@ -10,7 +10,7 @@
 
 **What task did you give the agent?**
 
-<!-- Describe the goal you asked the agent to accomplish -->
+Drafting UML, mermaid.md
 
 **What did the agent do?**
 
@@ -26,14 +26,14 @@
 
 > Compare two different prompts (or two different models) on the same task.
 
-| | Option A | Option B |
-|-|----------|----------|
-| **Model / tool used** | | |
-| **Prompt** | | |
-| **Response summary** | | |
-| **What was useful** | | |
-| **Problems noticed** | | |
-| **Decision** | | |
+|                       | Option A | Option B |
+| --------------------- | -------- | -------- |
+| **Model / tool used** |          |          |
+| **Prompt**            |          |          |
+| **Response summary**  |          |          |
+| **What was useful**   |          |          |
+| **Problems noticed**  |          |          |
+| **Decision**          |          |          |
 
 **Which approach did you use in your final implementation and why?**
 

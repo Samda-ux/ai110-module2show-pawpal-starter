@@ -4,12 +4,12 @@
 
 **a. Initial design**
 
-I started with four classes, each with one job (UML in [diagrams/uml.mmd](diagrams/uml.mmd), code in [pawpal_system.py](pawpal_system.py)):
+I started with four classes, each with one job
 
-- **Task** (dataclass): one care activity. It holds `title`, `duration_minutes`, `priority`, `category`, and `completed`. Its only behavior is `mark_complete()`.
-- **Pet** (dataclass): holds `name`, `species`, `age`, and its own list of `Task`s. It is responsible for adding and removing its tasks.
-- **Owner** (dataclass): holds `name`, `available_minutes` (the daily time budget), `preferences`, and the list of `Pet`s. It manages its pets and can collect tasks across all of them.
-- **Scheduler**: the only class with planning logic. It takes an `Owner`, picks and orders tasks to fit the time budget (`generate_plan()`), and describes the result (`explain_plan()`).
+- Task: one care activity. It holds `title`, `duration_minutes`, `priority`, `category`, and `completed`. Its only behavior is `mark_complete()`.
+- Pet: holds `name`, `species`, `age`, and its own list of `Task`s. It is responsible for adding and removing its tasks.
+- Owner holds `name`, `available_minutes` (the daily time budget), `preferences`, and the list of `Pet`s. It manages its pets and can collect tasks across all of them.
+- Scheduler : scheduling logic. It takes an Owner, picks and orders tasks to fit the time budget (`generate_plan()`), and describes the result (`explain_plan()`).
 
 Relationships: an Owner has many Pets and a Pet has many Tasks (composition), and the Scheduler works on one Owner. I used dataclasses for the data-holding classes and kept the Scheduler as a plain class because it is behavior rather than data.
 
@@ -44,12 +44,16 @@ Known limitation I left for later: `remove_task` and `remove_pet` match by name 
 **a. How you used AI**
 
 - How did you use AI tools during this project (for example: design brainstorming, debugging, refactoring)?
+  I used it for design brainstorming, debugging, refactoring, helping my understanding, etc.
 - What kinds of prompts or questions were most helpful?
+  For specific tasks one shot prompts worked well.
 
 **b. Judgment and verification**
 
 - Describe one moment where you did not accept an AI suggestion as-is.
+  Let the AI run on the code and it mistakenly changed a lot in README and reflection.
 - How did you evaluate or verify what the AI suggested?
+  Had to look through the code and ask the AI its thought process to evaluate and verify.
 
 ---
 

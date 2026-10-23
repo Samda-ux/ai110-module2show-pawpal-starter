@@ -44,30 +44,40 @@ pip install -r requirements.txt
 
 ## 🖥️ Sample Output
 
-Paste a sample of your app's CLI or Streamlit output here so a reader can see what a generated plan looks like:
+Output of `python main.py`:
 
 ```
-# e.g.:
-# Daily plan for Biscuit (Golden Retriever):
-#   08:00 — Morning walk (30 min) [priority: high]
-#   09:00 — Feeding (10 min) [priority: high]
-#   ...
+==================================================
+                 Today's Schedule
+==================================================
+Daily plan for Jordan (90 min available):
+  07:00 - Morning walk for Mochi (30 min) [high priority, preferred time 07:00]
+  07:45 - Breakfast for Luna (10 min) [high priority, preferred time 07:45]
+  08:00 - Give medication for Luna (5 min) [high priority, preferred time 08:00]
+  09:00 - Play session for Luna (15 min) [medium priority, preferred time 09:00]
+  09:15 - Brush coat for Mochi (20 min) [low priority]
+  Skipped: Bath for Mochi (not enough time left)
+==================================================
 ```
 
 ## 🧪 Testing PawPal+
 
 ```bash
-# Run the full test suite:
-pytest
-
-# Run with coverage:
-pytest --cov
+# Activate the virtual environment first (Windows: .venv\Scripts\activate)
+python -m pytest
 ```
 
-Sample test output:
+# Sample test output:
 
 ```
-# Paste your pytest output here
+============================= test session starts =============================
+platform win32 -- Python 3.13.0, pytest-9.1.1, pluggy-1.7.0
+rootdir: C:\Users\swift_o\ai110-module2show-pawpal-starter
+collected 2 items
+
+tests\test_pawpal.py ..                                                  [100%]
+
+============================== 2 passed in 0.03s ==============================
 ```
 
 ## 📐 Smarter Scheduling
@@ -92,3 +102,4 @@ Describe your app in numbered steps so a reader can follow along without watchin
 5. <!-- Add more steps as needed -->
 
 **Screenshot or video** *(optional)*: <!-- Insert a screenshot or link to a demo video here -->
+```

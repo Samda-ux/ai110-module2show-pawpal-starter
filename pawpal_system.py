@@ -8,15 +8,20 @@ PRIORITY_RANK = {"high": 0, "medium": 1, "low": 2}
 
 @dataclass
 class Task:
-    title: str
+    description: str
     duration_minutes: int
     priority: str = "medium"  # "low" | "medium" | "high"
-    category: str = "general"  # e.g. walk, feeding, meds, grooming
+    time: str | None = None  # preferred start "HH:MM", or None if flexible
+    frequency: str = "daily"  # "once" | "daily" | "weekly"
     completed: bool = False
 
     def mark_complete(self) -> None:
         """Mark this task as done."""
-        pass
+        self.completed = True
+
+    def mark_incomplete(self) -> None:
+        """Reset this task, e.g. for the next day of a recurring task."""
+        self.completed = False
 
 
 @dataclass
@@ -28,11 +33,14 @@ class Pet:
 
     def add_task(self, task: Task) -> None:
         """Attach a care task to this pet."""
-        pass
+        self.tasks.append(task)
 
-    def remove_task(self, title: str) -> None:
-        """Remove the task with the given title."""
-        pass
+    def remove_task(self, description: str) -> None:
+        """Remove the first task with the given description."""
+        for i, task in enumerate(self.tasks):
+            if task.description == description:
+                del self.tasks[i]
+                return
 
 
 @dataclass
@@ -44,15 +52,19 @@ class Owner:
 
     def add_pet(self, pet: Pet) -> None:
         """Register a pet with this owner."""
-        pass
+        self.pets.append(pet)
 
     def remove_pet(self, pet_name: str) -> None:
         """Remove the pet with the given name."""
-        pass
+        self.pets = [p for p in self.pets if p.name != pet_name]
+
+    def get_pet(self, pet_name: str) -> Pet | None:
+        """Look up a pet by name."""
+        return next((p for p in self.pets if p.name == pet_name), None)
 
     def get_all_tasks(self) -> list[tuple[Pet, Task]]:
         """Return every (pet, task) pair so callers know which pet each task is for."""
-        pass
+        return [(pet, task) for pet in self.pets for task in pet.tasks]
 
 
 @dataclass
@@ -65,15 +77,90 @@ class ScheduledTask:
     reason: str
 
 
+def _to_minutes(hhmm: str) -> int:
+    """Convert an "HH:MM" string to minutes since midnight."""
+    hours, minutes = hhmm.split(":")
+    return int(hours) * 60 + int(minutes)
+
+
+def _to_hhmm(minutes: int) -> str:
+    """Convert minutes since midnight to an "HH:MM" string."""
+    return f"{minutes // 60:02d}:{minutes % 60:02d}"
+
+
 class Scheduler:
     def __init__(self, owner: Owner):
+        """Create a scheduler that plans the day for the given owner."""
         self.owner = owner
         self.plan: list[ScheduledTask] = []  # last generated plan, read by explain_plan()
+        self.skipped: list[tuple[Pet, Task]] = []  # tasks that didn't fit the time budget
+
+    def get_pending_tasks(self) -> list[tuple[Pet, Task]]:
+        """All incomplete tasks across every pet, read through the Owner."""
+        return [(pet, task) for pet, task in self.owner.get_all_tasks() if not task.completed]
+
+    def sort_tasks(self, tasks: list[tuple[Pet, Task]]) -> list[tuple[Pet, Task]]:
+        """Order by priority, then preferred time (timed tasks first), then shortest first."""
+        return sorted(
+            tasks,
+            key=lambda pt: (
+                PRIORITY_RANK.get(pt[1].priority, len(PRIORITY_RANK)),
+                pt[1].time is None,
+                pt[1].time or "",
+                pt[1].duration_minutes,
+            ),
+        )
 
     def generate_plan(self) -> list[ScheduledTask]:
         """Pick and order tasks for the day within the owner's available time."""
-        pass
+        day_start = _to_minutes(self.owner.preferences.get("day_start", "08:00"))
+        budget = self.owner.available_minutes
+        used = 0
+        chosen: list[tuple[Pet, Task]] = []
+        self.skipped = []
+
+        # Greedy: take the most important tasks first until the time budget runs out.
+        for pet, task in self.sort_tasks(self.get_pending_tasks()):
+            if used + task.duration_minutes <= budget:
+                chosen.append((pet, task))
+                used += task.duration_minutes
+            else:
+                self.skipped.append((pet, task))
+
+        # Lay chosen tasks out in time order: preferred times first, flexible ones after.
+        chosen.sort(key=lambda pt: _to_minutes(pt[1].time) if pt[1].time else float("inf"))
+        self.plan = []
+        clock = day_start
+        for pet, task in chosen:
+            if task.time:
+                clock = max(clock, _to_minutes(task.time))
+            reason = f"{task.priority} priority"
+            if task.time:
+                reason += f", preferred time {task.time}"
+            self.plan.append(ScheduledTask(pet, task, clock - day_start, reason))
+            clock += task.duration_minutes
+        return self.plan
+
+    def complete_task(self, pet_name: str, description: str) -> bool:
+        """Mark a pet's task done. Returns False if no such task exists."""
+        for pet, task in self.owner.get_all_tasks():
+            if pet.name == pet_name and task.description == description:
+                task.mark_complete()
+                return True
+        return False
 
     def explain_plan(self) -> str:
         """Describe why each task was chosen and where it landed in the plan."""
-        pass
+        if not self.plan:
+            return "No tasks scheduled."
+        day_start = _to_minutes(self.owner.preferences.get("day_start", "08:00"))
+        lines = [f"Daily plan for {self.owner.name} ({self.owner.available_minutes} min available):"]
+        for item in self.plan:
+            start = _to_hhmm(day_start + item.start_minute)
+            lines.append(
+                f"  {start} - {item.task.description} for {item.pet.name} "
+                f"({item.task.duration_minutes} min) [{item.reason}]"
+            )
+        for pet, task in self.skipped:
+            lines.append(f"  Skipped: {task.description} for {pet.name} (not enough time left)")
+        return "\n".join(lines)

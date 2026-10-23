@@ -19,12 +19,14 @@ classDiagram
     }
 
     class Task {
-        +str title
+        +str description
         +int duration_minutes
         +str priority
-        +str category
+        +str time
+        +str frequency
         +bool completed
         +mark_complete() None
+        +mark_incomplete() None
     }
 
     class ScheduledTask {
@@ -37,7 +39,11 @@ classDiagram
     class Scheduler {
         +Owner owner
         +list~ScheduledTask~ plan
+        +list~tuple~ skipped
+        +get_pending_tasks() list~tuple~
+        +sort_tasks(tasks) list~tuple~
         +generate_plan() list~ScheduledTask~
+        +complete_task(pet_name, description) bool
         +explain_plan() str
     }
 
