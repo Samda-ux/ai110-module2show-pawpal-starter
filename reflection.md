@@ -4,13 +4,24 @@
 
 **a. Initial design**
 
-- Briefly describe your initial UML design.
-- What classes did you include, and what responsibilities did you assign to each?
+I started with four classes, each with one job (UML in [diagrams/uml.mmd](diagrams/uml.mmd), code in [pawpal_system.py](pawpal_system.py)):
+
+- **Task** (dataclass): one care activity. It holds `title`, `duration_minutes`, `priority`, `category`, and `completed`. Its only behavior is `mark_complete()`.
+- **Pet** (dataclass): holds `name`, `species`, `age`, and its own list of `Task`s. It is responsible for adding and removing its tasks.
+- **Owner** (dataclass): holds `name`, `available_minutes` (the daily time budget), `preferences`, and the list of `Pet`s. It manages its pets and can collect tasks across all of them.
+- **Scheduler**: the only class with planning logic. It takes an `Owner`, picks and orders tasks to fit the time budget (`generate_plan()`), and describes the result (`explain_plan()`).
+
+Relationships: an Owner has many Pets and a Pet has many Tasks (composition), and the Scheduler works on one Owner. I used dataclasses for the data-holding classes and kept the Scheduler as a plain class because it is behavior rather than data.
 
 **b. Design changes**
 
-- Did your design change during implementation?
-- If yes, describe at least one change and why you made it.
+After the first skeleton, I reviewed it for missing relationships and bottlenecks and made three changes:
+
+1. **Added a `ScheduledTask` dataclass.** `generate_plan()` originally returned `list[Task]`, which has nowhere to store a start time or the reason a task was picked, so `explain_plan()` would have had nothing to read. `ScheduledTask` holds the pet, the task, `start_minute`, and `reason`, and the Scheduler keeps its latest `plan`.
+2. **`Owner.get_all_tasks()` now returns `(Pet, Task)` pairs.** A flat list of tasks loses which pet each task belongs to, and the plan needs to show that.
+3. **Added `PRIORITY_RANK`.** Priority is a string, and sorting `"high"/"medium"/"low"` directly would be alphabetical (high, low, medium). An explicit rank makes ordering correct.
+
+Known limitation I left for later: `remove_task` and `remove_pet` match by name or title, so duplicates would be ambiguous. I'll revisit that when I implement the logic.
 
 ---
 

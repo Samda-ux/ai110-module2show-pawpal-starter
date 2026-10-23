@@ -6,7 +6,7 @@ classDiagram
         +list~Pet~ pets
         +add_pet(pet) None
         +remove_pet(pet_name) None
-        +get_all_tasks() list~Task~
+        +get_all_tasks() list~tuple~
     }
 
     class Pet {
@@ -27,13 +27,23 @@ classDiagram
         +mark_complete() None
     }
 
+    class ScheduledTask {
+        +Pet pet
+        +Task task
+        +int start_minute
+        +str reason
+    }
+
     class Scheduler {
         +Owner owner
-        +generate_plan() list~Task~
+        +list~ScheduledTask~ plan
+        +generate_plan() list~ScheduledTask~
         +explain_plan() str
     }
 
     Owner "1" *-- "0..*" Pet : has
     Pet "1" *-- "0..*" Task : needs
     Scheduler --> Owner : plans for
-    Scheduler ..> Task : orders and selects
+    Scheduler "1" o-- "0..*" ScheduledTask : produces
+    ScheduledTask --> Pet : for
+    ScheduledTask --> Task : schedules
